@@ -31,7 +31,7 @@ export interface ServerOptions {
  */
 export async function startServer(options: ServerOptions = {}) {
   const port = options.port || 3001;
-  const corsOrigins = options.corsOrigins || ['http://localhost:5173', 'http://localhost:3001'];
+  const corsOrigins = options.corsOrigins || ['http://localhost:5173', 'http://localhost:3001', 'https://adim-beta.com.ly'];
 
   const app: Express = express();
   const httpServer = createServer(app);
@@ -43,6 +43,7 @@ export async function startServer(options: ServerOptions = {}) {
       credentials: true,
     })
   );
+  app.options('*', cors());
   app.use(express.json());
 
   // Serve static frontend files (for Electron / production)

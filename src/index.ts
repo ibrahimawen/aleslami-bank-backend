@@ -32,11 +32,18 @@ export interface ServerOptions {
 export async function startServer(options: ServerOptions = {}) {
   // Render & other PaaS platforms inject process.env.PORT
   const port = process.env.PORT || options.port || 3001;
-  const defaultOrigins = ['http://localhost:5173', 'http://localhost:3001', 'https://adim-beta.com.ly'];
-  if (process.env.CORS_ORIGIN) {
-    defaultOrigins.push(process.env.CORS_ORIGIN);
+  // Use a highly permissive CORS setup if CORS_ORIGIN is set to '*' or if deploying to PaaS
+  const isPermissive = process.env.CORS_ORIGIN === '*' || process.env.RENDER === 'true';
+
+  let corsOrigins: string[] | boolean = isPermissive ? true : options.corsOrigins || [
+    'http://localhost:5173',
+    'http://localhost:3001',
+    'https://adim-beta.com.ly'
+  ];
+
+  if (!isPermissive && process.env.CORS_ORIGIN && Array.isArray(corsOrigins)) {
+    corsOrigins.push(process.env.CORS_ORIGIN);
   }
-  const corsOrigins = options.corsOrigins || defaultOrigins;
 
   const app: Express = express();
   const httpServer = createServer(app);
@@ -92,7 +99,7 @@ export async function startServer(options: ServerOptions = {}) {
     initializeSchema();
 
     // Setup Socket.io with dynamic CORS
-    setupSocketIO(httpServer, corsOrigins);
+    setupSocketIO(httpServer, corsOrigins === true ? undefined : corsOrigins);
 
     // Check if database needs seeding
     const existingCount = queryOne('SELECT COUNT(*) as count FROM transactions') as {

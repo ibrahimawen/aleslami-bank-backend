@@ -22,8 +22,18 @@ import setupSocketIO from './socket/handlers.js';
  * Can be called from Electron main process or run standalone
  */
 export async function startServer(options = {}) {
-    const port = options.port || 3001;
-    const corsOrigins = options.corsOrigins || ['http://localhost:5173', 'http://localhost:3001'];
+    // Render & other PaaS platforms inject process.env.PORT
+    const port = process.env.PORT || options.port || 3001;
+    // Use a highly permissive CORS setup if CORS_ORIGIN is set to '*' or if deploying to PaaS
+    const isPermissive = process.env.CORS_ORIGIN === '*' || process.env.RENDER === 'true';
+    let corsOrigins = isPermissive ? true : options.corsOrigins || [
+        'http://localhost:5173',
+        'http://localhost:3001',
+        'https://adim-beta.com.ly'
+    ];
+    if (!isPermissive && process.env.CORS_ORIGIN && Array.isArray(corsOrigins)) {
+        corsOrigins.push(process.env.CORS_ORIGIN);
+    }
     const app = express();
     const httpServer = createServer(app);
     // Middleware
@@ -31,6 +41,7 @@ export async function startServer(options = {}) {
         origin: corsOrigins,
         credentials: true,
     }));
+    app.options('*', cors());
     app.use(express.json());
     // Serve static frontend files (for Electron / production)
     if (options.staticDir) {
@@ -67,7 +78,7 @@ export async function startServer(options = {}) {
         console.log('Initializing schema...');
         initializeSchema();
         // Setup Socket.io with dynamic CORS
-        setupSocketIO(httpServer, corsOrigins);
+        setupSocketIO(httpServer, corsOrigins === true ? undefined : corsOrigins);
         // Check if database needs seeding
         const existingCount = queryOne('SELECT COUNT(*) as count FROM transactions');
         if (!existingCount || existingCount.count === 0) {
@@ -81,7 +92,7 @@ export async function startServer(options = {}) {
             httpServer.listen(port, () => {
                 console.log(`Serafa Backend is running on http://localhost:${port}`);
                 console.log(`Socket.io connected on http://localhost:${port}`);
-                resolve({ httpServer, app, port });
+                resolve({ httpServer, app, port: Number(port) });
             });
             httpServer.on('error', reject);
         });

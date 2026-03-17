@@ -30,7 +30,8 @@ export interface ServerOptions {
  * Can be called from Electron main process or run standalone
  */
 export async function startServer(options: ServerOptions = {}) {
-  const port = options.port || 3001;
+  // Render & other PaaS platforms inject process.env.PORT
+  const port = process.env.PORT || options.port || 3001;
   const defaultOrigins = ['http://localhost:5173', 'http://localhost:3001', 'https://adim-beta.com.ly'];
   if (process.env.CORS_ORIGIN) {
     defaultOrigins.push(process.env.CORS_ORIGIN);
@@ -111,7 +112,7 @@ export async function startServer(options: ServerOptions = {}) {
       httpServer.listen(port, () => {
         console.log(`Serafa Backend is running on http://localhost:${port}`);
         console.log(`Socket.io connected on http://localhost:${port}`);
-        resolve({ httpServer, app, port });
+        resolve({ httpServer, app, port: Number(port) });
       });
       httpServer.on('error', reject);
     });

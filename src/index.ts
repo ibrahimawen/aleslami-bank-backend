@@ -31,7 +31,11 @@ export interface ServerOptions {
  */
 export async function startServer(options: ServerOptions = {}) {
   const port = options.port || 3001;
-  const corsOrigins = options.corsOrigins || ['http://localhost:5173', 'http://localhost:3001', 'https://adim-beta.com.ly'];
+  const defaultOrigins = ['http://localhost:5173', 'http://localhost:3001', 'https://adim-beta.com.ly'];
+  if (process.env.CORS_ORIGIN) {
+    defaultOrigins.push(process.env.CORS_ORIGIN);
+  }
+  const corsOrigins = options.corsOrigins || defaultOrigins;
 
   const app: Express = express();
   const httpServer = createServer(app);
